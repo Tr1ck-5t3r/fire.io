@@ -1,17 +1,27 @@
-import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder } from 'babylonjs';
+import { Engine, Scene, UniversalCamera, HemisphericLight, Vector3 } from 'babylonjs';
+import { createGround } from '../world/ground';
 
 export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
   const scene = new Scene(engine);
 
   // Camera
-  const camera = new ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2.5, 10, Vector3.Zero(), scene);
-  camera.attachControl(canvas, true);
+  const camera = new UniversalCamera('camera', new Vector3(0, 2, -10), scene);
+  camera.setTarget(Vector3.Zero());      // look at origin
+  camera.attachControl(canvas, true);    // enable input (mouse + keyboard)
+  camera.speed = 0.5;  
+
+  // Expose the Babylon scene for UI components (Reticle) to consume
+  try {
+    ;(window as any).babylonScene = scene
+  } catch (e) {
+    // ignore
+  }
 
   // Light
   new HemisphericLight('light', new Vector3(0, 1, 0), scene);
 
-  // Ground
-  MeshBuilder.CreateGround('ground', { width: 20, height: 20 }, scene);
+  // Ground (moved to world module)
+  createGround(scene)
 
   // Placeholder for player, objects, etc.
 

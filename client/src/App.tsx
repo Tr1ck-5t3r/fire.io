@@ -6,6 +6,7 @@ import { SnowmanController } from './game/controllers/SnowmanController';
 import HUD from './ui/HUD';
 import PauseMenu from './ui/PauseMenu';
 import { useGameStore } from './state/gameStore';
+import Reticle from './ui/Reticle';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
 		<canvas ref={canvasRef} id="renderCanvas" style={{ width: '100%', height: '100%', display: 'block' }} />
 		<HUD />
 		<PauseMenu />
+    <Reticle />
 	</div>
   );
 };
