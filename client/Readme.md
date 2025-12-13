@@ -22,36 +22,44 @@ This is the client-side codebase for a multiplayer first-person shooter (FPS) ga
 ## Folder Structure
 
 client/
-	index.html
-	node_modules/
-	package.json
-	public/
-		vite.svg
-	Readme.md
-	src/
-		App.tsx
-		main.tsx
-		style.css
-		typescript.svg
-		game/
-			engine/              # Core game engine logic and scene setup
-				createScene.ts
-			entities/            # Game entities (players, NPCs, etc.)
-				Snowman.ts
-			projectiles/         # Projectile logic and classes
-				Snowball.ts
-			controllers/         # Controllers for entity behavior
-				SnowmanController.ts
-			world/               # World/environment objects
-				Ground.ts
-			utils/               # Utility/helper functions
-				Random.ts
-			network/             # Multiplayer/networking code
-				NetworkClient.ts
-		state/
-			gameStore.ts
-		ui/
-			HUD.tsx
-			PauseMenu.tsx
-	tsconfig.json
-	yarn.lock
+├─ index.html
+├─ package.json
+├─ tsconfig.json
+├─ yarn.lock
+├─ public/
+│  └─ vite.svg
+├─ src/
+│  ├─ main.tsx                # React entry point
+│  ├─ App.tsx                 # Root React component
+│  ├─ style.css
+│  │
+│  ├─ game/                   # Babylon.js game logic (non-React)
+│  │  ├─ engine/              # Engine & scene creation
+│  │  │  └─ createScene.ts
+│  │  │
+│  │  ├─ entities/            # Game entities
+│  │  │  └─ Snowman.ts
+│  │  │
+│  │  ├─ controllers/         # Entity behavior & movement
+│  │  │  └─ SnowmanController.ts
+│  │  │
+│  │  ├─ projectiles/         # Projectile logic
+│  │  │  └─ Snowball.ts
+│  │  │
+│  │  ├─ world/               # World and environment objects
+│  │  │  └─ Ground.ts
+│  │  │
+│  │  ├─ utils/               # Utility helpers
+│  │  │  └─ Random.ts
+│  │  │
+│  │  └─ network/             # Multiplayer & networking (future)
+│  │     └─ NetworkClient.ts
+│  │
+│  ├─ state/                  # Global UI/game state
+│  │  └─ gameStore.ts
+│  │
+│  └─ ui/                     # React UI components
+│     ├─ HUD.tsx
+│     └─ PauseMenu.tsx
+│
+└─ README.md
