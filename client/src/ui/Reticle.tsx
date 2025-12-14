@@ -6,11 +6,11 @@ type ReticleProps = {
   thickness?: number // px
 }
 
-const Reticle: React.FC<ReticleProps> = ({ size = 20, color = 'white', thickness = 2 }) => {
+const Reticle: React.FC<ReticleProps> = ({ size = 10, color = 'black', thickness = 2 }) => {
   const half = size / 2
 
   return (
-    <div
+    <div  
       aria-hidden
       style={{
         position: 'fixed',

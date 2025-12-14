@@ -4,7 +4,7 @@ export function createGround(scene: Scene) {
   const ground = MeshBuilder.CreateGround('ground', { width: 20, height: 20 }, scene);
 
   const mat = new StandardMaterial('groundMat', scene);
-  mat.diffuseColor = new Color3(0.2, 0.6, 0.2);
+  mat.diffuseColor = new Color3(0.2, 0.5, 0.2);
   mat.specularColor = new Color3(0, 0, 0);
   ground.material = mat;
 

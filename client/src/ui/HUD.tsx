@@ -8,7 +8,6 @@ export const HUD: React.FC = () => {
     <div style={{ position: 'absolute', top: 10, left: 10, color: 'white', fontFamily: 'sans-serif' }}>
       <div>Health: {health}</div>
       <div>Ammo: {ammo}</div>
-      {/* Centered HTML crosshair removed in favor of Babylon GUI crosshair in createScene.ts */}
     </div>
   )
 }

@@ -5,8 +5,7 @@ export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
   const scene = new Scene(engine);
 
   // Camera
-  const camera = new UniversalCamera('camera', new Vector3(0, 2, -10), scene);
-  camera.setTarget(Vector3.Zero());      // look at origin
+  const camera = new UniversalCamera('camera', new Vector3(0, 2, -5), scene);
   camera.attachControl(canvas, true);    // enable input (mouse + keyboard)
   camera.speed = 0.5;  
 
