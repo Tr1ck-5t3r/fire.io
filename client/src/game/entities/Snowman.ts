@@ -8,6 +8,12 @@ export class Snowman {
     this.scene = scene;
     this.rootMesh = new Mesh('snowman', scene);
     this.rootMesh.position = position;
+
+    // Enable collisions for the snowman and define a simple collision shape
+    this.rootMesh.checkCollisions = true;
+    (this.rootMesh as any).ellipsoid = new Vector3(0.5, 1, 0.5);
+    (this.rootMesh as any).ellipsoidOffset = new Vector3(0, 1, 0);
+
     this.createSnowman();
     if (camera) {
       this.attachCamera(camera);
