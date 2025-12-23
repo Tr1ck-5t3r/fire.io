@@ -29,6 +29,8 @@ export interface WorldConfig {
     playerMoveSpeed: number;      // Movement speed for the player
     cameraAngularSensibility: number; // Higher = slower mouse turn in Babylon
     mouseSensitivity: number;     // Multiplier used in App.tsx for mouse look
+    jumpForce: number;            // Vertical velocity applied when jumping
+    gravity: number;              // Gravity strength (negative Y acceleration)
   };
   obstructions: {
     enabled: boolean;      // Whether to create obstructions
@@ -71,8 +73,10 @@ export const worldConfig: WorldConfig = {
   },
   controls: {
     playerMoveSpeed: 0.08,          // Increased player speed
-    cameraAngularSensibility: 10000, // Higher number = slower camera turn
+    cameraAngularSensibility: 15000, // Higher number = slower camera turn
     mouseSensitivity: 0.0005,       // Slightly lower than before
+    jumpForce: 0.15,               // Jump velocity (higher = jump higher)
+    gravity: -0.005,                // Gravity strength per frame
   },
   obstructions: {
     enabled: true,

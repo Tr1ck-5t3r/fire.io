@@ -12,9 +12,9 @@ export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
   // Load world configuration early
   const worldConfig = getWorldConfig();
 
-  // Enable global collisions and simple gravity
+  // Enable global collisions and gravity
   scene.collisionsEnabled = true;
-  scene.gravity = new Vector3(0, -0.9, 0);
+  scene.gravity = new Vector3(0, worldConfig.controls.gravity * 45, 0); // Convert per-frame gravity to Babylon's gravity
 
   // Camera (movement/collisions are handled by the snowman root mesh)
   const camera = new UniversalCamera('camera', new Vector3(0, 2, -5), scene);
@@ -130,7 +130,7 @@ export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
     p.x = Math.max(-limitX, Math.min(limitX, p.x));
     p.z = Math.max(-limitZ, Math.min(limitZ, p.z));
 
-    // Keep feet on the ground
+    // Keep player from falling below ground (minimum Y position)
     if (p.y < 0) p.y = 0;
   });
 

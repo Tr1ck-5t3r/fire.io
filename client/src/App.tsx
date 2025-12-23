@@ -46,8 +46,13 @@ export const App: React.FC = () => {
       forward: false,
       backward: false,
       left: false,
-      right: false
+      right: false,
+      jump: false
     };
+
+    // Jump and physics state
+    let verticalVelocity = 0;
+    let isGrounded = true;
 
     // Mouse look handler
     function onMouseMove(e: MouseEvent) {
@@ -99,11 +104,45 @@ export const App: React.FC = () => {
         moveDirection.addInPlace(right);
       }
 
-      // Restrict Y movement to keep snowman grounded
-      moveDirection.y = 0;
-
+      // Apply horizontal movement
       if (moveDirection.length() > 0) {
+        moveDirection.y = 0; // Keep horizontal movement separate
         snowmanController.move(moveDirection.normalize().scale(moveSpeed));
+      }
+
+      // Handle jump and physics
+      const snowmanPosition = snowman.getMesh().position;
+      const previousY = snowmanPosition.y;
+      
+      // Check if grounded (very close to ground level)
+      isGrounded = snowmanPosition.y <= 0.15;
+
+      // Jump when spacebar is pressed and player is grounded
+      if (keysPressed.jump && isGrounded) {
+        verticalVelocity = controls.jumpForce;
+        isGrounded = false;
+      }
+
+      // Apply gravity every frame
+      verticalVelocity += controls.gravity;
+
+      // Apply vertical movement
+      if (Math.abs(verticalVelocity) > 0.001) {
+        const verticalMove = new Vector3(0, verticalVelocity, 0);
+        snowmanController.move(verticalMove);
+        
+        // Check if we hit the ground (collision detection)
+        const newY = snowman.getMesh().position.y;
+        if (newY <= 0.1 && verticalVelocity < 0) {
+          verticalVelocity = 0;
+          snowmanPosition.y = 0;
+          isGrounded = true;
+        }
+        // Also check if position didn't change (collision with ground)
+        else if (Math.abs(newY - previousY) < 0.001 && verticalVelocity < 0 && newY <= 0.15) {
+          verticalVelocity = 0;
+          isGrounded = true;
+        }
       }
 
       // Handle mouse look
@@ -166,6 +205,9 @@ export const App: React.FC = () => {
         case 'd':
         case 'arrowright':
           keysPressed.right = false;
+          break;
+        case ' ':
+          keysPressed.jump = false;
           break;
       }
     }
