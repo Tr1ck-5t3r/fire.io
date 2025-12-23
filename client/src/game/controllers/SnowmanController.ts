@@ -9,7 +9,7 @@ export class SnowmanController {
   }
 
   public move(direction: Vector3) {
-    this.mesh.position.addInPlace(direction.scale(this.speed));
+    this.mesh.position.addInPlace(direction);
   }
 
   // Add more snowman-specific logic here

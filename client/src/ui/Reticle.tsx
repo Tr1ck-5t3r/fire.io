@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useGameStore } from '../state/gameStore'
 
 type ReticleProps = {
   size?: number // overall size in px
@@ -6,8 +7,22 @@ type ReticleProps = {
   thickness?: number // px
 }
 
-const Reticle: React.FC<ReticleProps> = ({ size = 10, color = 'black', thickness = 2 }) => {
+const Reticle: React.FC<ReticleProps> = ({ size = 20, color = 'white', thickness = 2 }) => {
+  const isFocused = useGameStore((s) => s.isFocused)
   const half = size / 2
+
+  useEffect(() => {
+    // Hide/show cursor based on focus state
+    document.body.style.cursor = isFocused ? 'none' : 'default'
+
+    return () => {
+      document.body.style.cursor = 'default'
+    }
+  }, [isFocused])
+
+  if (!isFocused) {
+    return null
+  }
 
   return (
     <div  
