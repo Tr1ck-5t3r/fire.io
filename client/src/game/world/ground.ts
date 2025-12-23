@@ -9,13 +9,14 @@ import {
 
 export function createGround(
   scene: Scene,
-  size: number = 20,
+  width: number = 20,
+  depth: number = 20,
   texturePath: string | undefined = undefined,
   tileSize: number = 1
 ) {
   const ground = MeshBuilder.CreateGround(
     "ground",
-    { width: size, height: size },
+    { width, height: depth },
     scene
   );
 
@@ -30,8 +31,8 @@ export function createGround(
     texture.wrapV = Texture.WRAP_ADDRESSMODE;
     
     // Tile texture based on size and tileSize
-    texture.uScale = size / tileSize;
-    texture.vScale = size / tileSize;
+    texture.uScale = width / tileSize;
+    texture.vScale = depth / tileSize;
 
     mat.diffuseTexture = texture;
   } else {

@@ -7,6 +7,7 @@ import HUD from './ui/HUD';
 import PauseMenu from './ui/PauseMenu';
 import { useGameStore } from './state/gameStore';
 import Reticle from './ui/Reticle';
+import { getWorldConfig } from './game/config/worldConfig';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
     }
     const engine = new Engine(canvas, true);
     const scene = createScene(engine, canvas);
+    const controls = getWorldConfig().controls;
 
     // Get snowman and create controller
     const snowman = (window as any).snowman;
@@ -36,7 +38,7 @@ export const App: React.FC = () => {
       lastMouseY: 0,
       rotationX: 0,
       rotationY: 0,
-      mouseSensitivity: 0.002
+      mouseSensitivity: controls.mouseSensitivity
     };
 
     // Movement state
@@ -78,7 +80,7 @@ export const App: React.FC = () => {
 
     engine.runRenderLoop(() => {
       // Handle continuous movement
-      const moveSpeed = 0.05; // Slower for smoother movement
+      const moveSpeed = controls.playerMoveSpeed;
       let moveDirection = Vector3.Zero();
 
       const forward = camera.getDirection(Vector3.Forward());

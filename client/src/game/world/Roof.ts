@@ -9,13 +9,14 @@ import {
 
 export function createRoof(
   scene: Scene,
-  size: number = 20,
+  width: number = 20,
+  depth: number = 20,
   height: number = 10,
   texturePath: string = "/roof-texture.jpg"
 ) {
   const roof = MeshBuilder.CreateGround(
     "roof",
-    { width: size, height: size },
+    { width, height: depth },
     scene
   );
 
@@ -30,8 +31,8 @@ export function createRoof(
   texture.wrapV = Texture.WRAP_ADDRESSMODE;
 
   // Tile texture instead of stretching
-  texture.uScale = size / 2;
-  texture.vScale = size / 2;
+  texture.uScale = width / 2;
+  texture.vScale = depth / 2;
 
   mat.diffuseTexture = texture;
   mat.specularColor = new Color3(0.1, 0.1, 0.1);

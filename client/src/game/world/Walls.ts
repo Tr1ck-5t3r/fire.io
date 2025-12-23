@@ -66,51 +66,53 @@ export function createWalls(scene: Scene, config: WallConfig = {}) {
 export function createWallBoundary(
   scene: Scene,
   texturePath: string | undefined = undefined,
-  size: number = 30,
+  width: number = 30,
+  depth: number = 30,
   wallHeight: number = 10,
   tileSize: number = 1,
   wallThickness: number = 0.2
 ) {
   const walls: any[] = [];
-  const halfSize = size / 2;
+  const halfWidth = width / 2;
+  const halfDepth = depth / 2;
 
-  // North wall
+  // North wall (positive Z)
   walls.push(createWalls(scene, {
     texturePath,
-    width: size,
+    width,
     height: wallHeight,
     depth: wallThickness,
-    position: new Vector3(0, wallHeight / 2, halfSize),
+    position: new Vector3(0, wallHeight / 2, halfDepth),
     tileSize,
   }));
 
-  // South wall
+  // South wall (negative Z)
   walls.push(createWalls(scene, {
     texturePath,
-    width: size,
+    width,
     height: wallHeight,
     depth: wallThickness,
-    position: new Vector3(0, wallHeight / 2, -halfSize),
+    position: new Vector3(0, wallHeight / 2, -halfDepth),
     tileSize,
   }));
 
-  // East wall
+  // East wall (positive X)
   walls.push(createWalls(scene, {
     texturePath,
     width: wallThickness,
     height: wallHeight,
-    depth: size,
-    position: new Vector3(halfSize, wallHeight / 2, 0),
+    depth,
+    position: new Vector3(halfWidth, wallHeight / 2, 0),
     tileSize,
   }));
 
-  // West wall
+  // West wall (negative X)
   walls.push(createWalls(scene, {
     texturePath,
     width: wallThickness,
     height: wallHeight,
-    depth: size,
-    position: new Vector3(-halfSize, wallHeight / 2, 0),
+    depth,
+    position: new Vector3(-halfWidth, wallHeight / 2, 0),
     tileSize,
   }));
 
