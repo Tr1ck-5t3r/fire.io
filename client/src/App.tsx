@@ -14,47 +14,6 @@ export const App: React.FC = () => {
   const setFocused = useGameStore((s) => s.setFocused);
   const isFocused = useGameStore((s) => s.isFocused);
 
-  // Mouse look state - moved outside useEffect to be accessible
-  const mouseStateRef = useRef({
-    mouseX: 0,
-    mouseY: 0,
-    lastMouseX: 0,
-    lastMouseY: 0,
-    rotationX: 0,
-    rotationY: 0,
-    mouseSensitivity: 0.002
-  });
-
-  // Movement state
-  const keysPressedRef = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false
-  });
-
-  // Mouse look handler - moved outside useEffect to be reactive
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    if (!isFocused) return;
-    
-    const mouseState = mouseStateRef.current;
-    mouseState.mouseX = e.clientX;
-    mouseState.mouseY = e.clientY;
-    
-    // Accumulate rotation changes
-    const deltaX = mouseState.mouseX - mouseState.lastMouseX;
-    const deltaY = mouseState.mouseY - mouseState.lastMouseY;
-    
-    mouseState.rotationY += deltaX * mouseState.mouseSensitivity;
-    mouseState.rotationX -= deltaY * mouseState.mouseSensitivity;
-    
-    // Clamp vertical rotation
-    mouseState.rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, mouseState.rotationX));
-    
-    mouseState.lastMouseX = mouseState.mouseX;
-    mouseState.lastMouseY = mouseState.mouseY;
-  }, [isFocused]);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -69,6 +28,54 @@ export const App: React.FC = () => {
     const snowmanController = new SnowmanController(snowman.getMesh());
     const camera = (window as any).camera;
 
+    // Mouse look state
+    const mouseState = {
+      mouseX: 0,
+      mouseY: 0,
+      lastMouseX: 0,
+      lastMouseY: 0,
+      rotationX: 0,
+      rotationY: 0,
+      mouseSensitivity: 0.002
+    };
+
+    // Movement state
+    const keysPressed = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false
+    };
+
+    // Mouse look handler
+    function onMouseMove(e: MouseEvent) {
+      if (!isFocused) return;
+      
+      // Check if pointer is locked (modern pointer lock API)
+      if (document.pointerLockElement === canvas) {
+        // Use movement deltas when pointer is locked
+        mouseState.rotationY += e.movementX * mouseState.mouseSensitivity;
+        mouseState.rotationX += e.movementY * mouseState.mouseSensitivity;
+      } else {
+        // Fallback to traditional mouse tracking
+        mouseState.mouseX = e.clientX;
+        mouseState.mouseY = e.clientY;
+        
+        // Accumulate rotation changes
+        const deltaX = mouseState.mouseX - mouseState.lastMouseX;
+        const deltaY = mouseState.mouseY - mouseState.lastMouseY;
+        
+        mouseState.rotationY += deltaX * mouseState.mouseSensitivity;
+        mouseState.rotationX -= deltaY * mouseState.mouseSensitivity;
+        
+        mouseState.lastMouseX = mouseState.mouseX;
+        mouseState.lastMouseY = mouseState.mouseY;
+      }
+      
+      // Clamp vertical rotation
+      mouseState.rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, mouseState.rotationX));
+    }
+
     engine.runRenderLoop(() => {
       // Handle continuous movement
       const moveSpeed = 0.05; // Slower for smoother movement
@@ -77,7 +84,6 @@ export const App: React.FC = () => {
       const forward = camera.getDirection(Vector3.Forward());
       const right = camera.getDirection(Vector3.Right());
 
-      const keysPressed = keysPressedRef.current;
       if (keysPressed.forward) {
         moveDirection.addInPlace(forward);
       }
@@ -100,7 +106,6 @@ export const App: React.FC = () => {
 
       // Handle mouse look
       if (isFocused) {
-        const mouseState = mouseStateRef.current;
         camera.rotation.y = mouseState.rotationY;
         camera.rotation.x = mouseState.rotationX;
       }
@@ -112,11 +117,15 @@ export const App: React.FC = () => {
       if (e.key === 'Escape') {
         setFocused(false);
         setPaused(true);
+        if (canvas) {
+          canvas.blur();
+          // Release pointer lock
+          document.exitPointerLock();
+        }
         return;
       }
       
       // Set movement flags
-      const keysPressed = keysPressedRef.current;
       switch (e.key.toLowerCase()) {
         case 'w':
         case 'arrowup':
@@ -139,7 +148,6 @@ export const App: React.FC = () => {
 
     function onKeyUp(e: KeyboardEvent) {
       // Clear movement flags
-      const keysPressed = keysPressedRef.current;
       switch (e.key.toLowerCase()) {
         case 'w':
         case 'arrowup':
@@ -166,7 +174,6 @@ export const App: React.FC = () => {
     function onCanvasFocus() {
       setFocused(true);
       // Initialize mouse position to center of screen
-      const mouseState = mouseStateRef.current;
       mouseState.lastMouseX = window.innerWidth / 2;
       mouseState.lastMouseY = window.innerHeight / 2;
       mouseState.mouseX = mouseState.lastMouseX;
@@ -178,6 +185,8 @@ export const App: React.FC = () => {
 
     function onCanvasBlur() {
       setFocused(false);
+      // Release pointer lock when canvas loses focus
+      document.exitPointerLock();
     }
 
     canvas.addEventListener('focus', onCanvasFocus);
@@ -188,6 +197,8 @@ export const App: React.FC = () => {
     function onCanvasClick() {
       if (canvas) {
         canvas.focus();
+        // Request pointer lock for mouse capture
+        canvas.requestPointerLock();
       }
     }
 
@@ -196,20 +207,13 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('focus', onCanvasFocus);
       canvas.removeEventListener('blur', onCanvasBlur);
       canvas.removeEventListener('click', onCanvasClick);
       engine.dispose();
     };
-  }, [setPaused, setFocused]);
-
-  // Separate effect for mouse listener to make it reactive to focus state
-  useEffect(() => {
-    window.addEventListener('mousemove', onMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-    };
-  }, [onMouseMove]);
+  }, [setPaused, setFocused, isFocused]);
 
   return (
 	<div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#222' }}>
