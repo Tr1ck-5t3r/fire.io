@@ -1,13 +1,11 @@
-
-import React, { useEffect, useRef, useCallback } from 'react';
-import { Engine, Vector3 } from 'babylonjs';
-import { createScene } from './game/engine/createScene';
-import { SnowmanController } from './game/controllers/SnowmanController';
-import HUD from './ui/HUD';
-import PauseMenu from './ui/PauseMenu';
-import { useGameStore } from './state/gameStore';
-import Reticle from './ui/Reticle';
-import { getWorldConfig } from './game/config/worldConfig';
+import React, { useEffect, useRef } from "react";
+import { Engine, Vector3 } from "babylonjs";
+import { createScene } from "./game/engine/createScene";
+import HUD from "./ui/HUD";
+import PauseMenu from "./ui/PauseMenu";
+import Reticle from "./ui/Reticle";
+import { getWorldConfig } from "./game/config/worldConfig";
+import { useGameStore } from "./state/gameStore";
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -16,257 +14,135 @@ export const App: React.FC = () => {
   const isFocused = useGameStore((s) => s.isFocused);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      console.warn('Canvas ref is null');
-      return;
-    }
+    const canvas = canvasRef.current!;
     const engine = new Engine(canvas, true);
     const scene = createScene(engine, canvas);
     const controls = getWorldConfig().controls;
 
-    // Get snowman and create controller
     const snowman = (window as any).snowman;
-    const snowmanController = new SnowmanController(snowman.getMesh());
-    const camera = (window as any).camera;
 
-    // Mouse look state
-    const mouseState = {
-      mouseX: 0,
-      mouseY: 0,
-      lastMouseX: 0,
-      lastMouseY: 0,
-      rotationX: 0,
-      rotationY: 0,
-      mouseSensitivity: controls.mouseSensitivity
+    let yaw = 0;
+    let pitch = 0;
+    const maxPitch = Math.PI / 2 - 0.05;
+
+    const keys = {
+      w: false,
+      a: false,
+      s: false,
+      d: false,
     };
 
-    // Movement state
-    const keysPressed = {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false,
-      jump: false
-    };
-
-    // Jump and physics state
     let verticalVelocity = 0;
-    let isGrounded = true;
+    let grounded = false;
 
-    // Mouse look handler
+    const GROUND_Y = 0;
+    const GROUND_EPSILON = 0.02;
+    const MAX_FALL_SPEED = -0.3;
+
+    /* -------------------- Mouse Look -------------------- */
     function onMouseMove(e: MouseEvent) {
-      if (!isFocused) return;
-      
-      // Check if pointer is locked (modern pointer lock API)
-      if (document.pointerLockElement === canvas) {
-        // Use movement deltas when pointer is locked
-        mouseState.rotationY += e.movementX * mouseState.mouseSensitivity;
-        mouseState.rotationX += e.movementY * mouseState.mouseSensitivity;
-      } else {
-        // Fallback to traditional mouse tracking
-        mouseState.mouseX = e.clientX;
-        mouseState.mouseY = e.clientY;
-        
-        // Accumulate rotation changes
-        const deltaX = mouseState.mouseX - mouseState.lastMouseX;
-        const deltaY = mouseState.mouseY - mouseState.lastMouseY;
-        
-        mouseState.rotationY += deltaX * mouseState.mouseSensitivity;
-        mouseState.rotationX -= deltaY * mouseState.mouseSensitivity;
-        
-        mouseState.lastMouseX = mouseState.mouseX;
-        mouseState.lastMouseY = mouseState.mouseY;
-      }
-      
-      // Clamp vertical rotation
-      mouseState.rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, mouseState.rotationX));
+      if (!isFocused || document.pointerLockElement !== canvas) return;
+
+      yaw += e.movementX * controls.mouseSensitivity;
+      pitch += e.movementY * controls.mouseSensitivity;
+      pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
     }
 
+    /* -------------------- Game Loop -------------------- */
     engine.runRenderLoop(() => {
-      // Handle continuous movement
-      const moveSpeed = controls.playerMoveSpeed;
-      let moveDirection = Vector3.Zero();
+      const forward = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+      const right = new Vector3(
+        Math.sin(yaw + Math.PI / 2),
+        0,
+        Math.cos(yaw + Math.PI / 2)
+      );
 
-      const forward = camera.getDirection(Vector3.Forward());
-      const right = camera.getDirection(Vector3.Right());
+      let move = Vector3.Zero();
+      if (keys.w) move.addInPlace(forward);
+      if (keys.s) move.subtractInPlace(forward);
+      if (keys.a) move.subtractInPlace(right);
+      if (keys.d) move.addInPlace(right);
 
-      if (keysPressed.forward) {
-        moveDirection.addInPlace(forward);
-      }
-      if (keysPressed.backward) {
-        moveDirection.addInPlace(forward.scale(-1));
-      }
-      if (keysPressed.left) {
-        moveDirection.addInPlace(right.scale(-1));
-      }
-      if (keysPressed.right) {
-        moveDirection.addInPlace(right);
+      if (move.length() > 0) {
+        snowman.move(move.normalize().scale(controls.playerMoveSpeed));
       }
 
-      // Apply horizontal movement
-      if (moveDirection.length() > 0) {
-        moveDirection.y = 0; // Keep horizontal movement separate
-        snowmanController.move(moveDirection.normalize().scale(moveSpeed));
-      }
-
-      // Handle jump and physics
-      const snowmanPosition = snowman.getMesh().position;
-      const previousY = snowmanPosition.y;
-      
-      // Check if grounded (very close to ground level)
-      isGrounded = snowmanPosition.y <= 0.15;
-
-      // Jump when spacebar is pressed and player is grounded
-      if (keysPressed.jump && isGrounded) {
-        verticalVelocity = controls.jumpForce;
-        isGrounded = false;
-      }
-
-      // Apply gravity every frame
+      /* -------- Gravity -------- */
       verticalVelocity += controls.gravity;
+      verticalVelocity = Math.max(verticalVelocity, MAX_FALL_SPEED);
 
-      // Apply vertical movement
-      if (Math.abs(verticalVelocity) > 0.001) {
-        const verticalMove = new Vector3(0, verticalVelocity, 0);
-        snowmanController.move(verticalMove);
-        
-        // Check if we hit the ground (collision detection)
-        const newY = snowman.getMesh().position.y;
-        if (newY <= 0.1 && verticalVelocity < 0) {
-          verticalVelocity = 0;
-          snowmanPosition.y = 0;
-          isGrounded = true;
-        }
-        // Also check if position didn't change (collision with ground)
-        else if (Math.abs(newY - previousY) < 0.001 && verticalVelocity < 0 && newY <= 0.15) {
-          verticalVelocity = 0;
-          isGrounded = true;
-        }
+      snowman.move(new Vector3(0, verticalVelocity, 0));
+
+      const pos = snowman.getMesh().position;
+
+      /* -------- Ground Detection -------- */
+      if (pos.y <= GROUND_Y + GROUND_EPSILON && verticalVelocity <= 0) {
+        pos.y = GROUND_Y;
+        verticalVelocity = 0;
+        grounded = true;
+      } else {
+        grounded = false;
       }
 
-      // Handle mouse look
-      if (isFocused) {
-        camera.rotation.y = mouseState.rotationY;
-        camera.rotation.x = mouseState.rotationX;
-      }
+      snowman.rotateYaw(yaw);
+      snowman.rotatePitch(pitch);
 
       scene.render();
     });
 
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setFocused(false);
+    /* -------------------- Input -------------------- */
+    window.addEventListener("mousemove", onMouseMove);
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
         setPaused(true);
-        if (canvas) {
-          canvas.blur();
-          // Release pointer lock
-          document.exitPointerLock();
-        }
+        setFocused(false);
+        document.exitPointerLock();
         return;
       }
-      
-      // Set movement flags
-      switch (e.key.toLowerCase()) {
-        case 'w':
-        case 'arrowup':
-          keysPressed.forward = true;
-          break;
-        case 's':
-        case 'arrowdown':
-          keysPressed.backward = true;
-          break;
-        case 'a':
-        case 'arrowleft':
-          keysPressed.left = true;
-          break;
-        case 'd':
-        case 'arrowright':
-          keysPressed.right = true;
-          break;
-      }
-    }
 
-    function onKeyUp(e: KeyboardEvent) {
-      // Clear movement flags
-      switch (e.key.toLowerCase()) {
-        case 'w':
-        case 'arrowup':
-          keysPressed.forward = false;
-          break;
-        case 's':
-        case 'arrowdown':
-          keysPressed.backward = false;
-          break;
-        case 'a':
-        case 'arrowleft':
-          keysPressed.left = false;
-          break;
-        case 'd':
-        case 'arrowright':
-          keysPressed.right = false;
-          break;
-        case ' ':
-          keysPressed.jump = false;
-          break;
-      }
-    }
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
+      if (e.key === "w") keys.w = true;
+      if (e.key === "a") keys.a = true;
+      if (e.key === "s") keys.s = true;
+      if (e.key === "d") keys.d = true;
 
-    // Focus/blur handlers for canvas
-    function onCanvasFocus() {
+      if (e.code === "Space" && grounded) {
+        verticalVelocity = controls.jumpForce;
+        grounded = false;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "w") keys.w = false;
+      if (e.key === "a") keys.a = false;
+      if (e.key === "s") keys.s = false;
+      if (e.key === "d") keys.d = false;
+    });
+
+    canvas.addEventListener("click", () => {
+      canvas.focus();
+      canvas.requestPointerLock();
       setFocused(true);
-      // Initialize mouse position to center of screen
-      mouseState.lastMouseX = window.innerWidth / 2;
-      mouseState.lastMouseY = window.innerHeight / 2;
-      mouseState.mouseX = mouseState.lastMouseX;
-      mouseState.mouseY = mouseState.lastMouseY;
-      // Reset rotation accumulators
-      mouseState.rotationX = camera.rotation.x;
-      mouseState.rotationY = camera.rotation.y;
-    }
-
-    function onCanvasBlur() {
-      setFocused(false);
-      // Release pointer lock when canvas loses focus
-      document.exitPointerLock();
-    }
-
-    canvas.addEventListener('focus', onCanvasFocus);
-    canvas.addEventListener('blur', onCanvasBlur);
-    window.addEventListener('mousemove', onMouseMove);
-
-    // Focus canvas on click
-    function onCanvasClick() {
-      if (canvas) {
-        canvas.focus();
-        // Request pointer lock for mouse capture
-        canvas.requestPointerLock();
-      }
-    }
-
-    canvas.addEventListener('click', onCanvasClick);
+    });
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('focus', onCanvasFocus);
-      canvas.removeEventListener('blur', onCanvasBlur);
-      canvas.removeEventListener('click', onCanvasClick);
       engine.dispose();
+      window.removeEventListener("mousemove", onMouseMove);
     };
-  }, [setPaused, setFocused, isFocused]);
+  }, [isFocused, setFocused, setPaused]);
 
   return (
-	<div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#222' }}>
-		<canvas ref={canvasRef} id="renderCanvas" tabIndex={0} style={{ width: '100%', height: '100%', display: 'block' }} />
-		<HUD />
-		<PauseMenu />
-    <Reticle />
-	</div>
+    <main style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+      <canvas
+        ref={canvasRef}
+        tabIndex={0}
+        style={{ width: "100%", height: "100%" }}
+      />
+      <HUD />
+      <PauseMenu />
+      <Reticle />
+    </main>
   );
 };
 
-export default App
+export default App;
